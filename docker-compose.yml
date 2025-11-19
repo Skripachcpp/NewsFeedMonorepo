@@ -1,0 +1,120 @@
+services:
+  # PostgreSQL Database for NewsFeed API
+  postgres:
+    image: postgres:16-alpine
+    container_name: newsfeed-postgres
+    environment:
+      POSTGRES_DB: NewsFeed
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - newsfeed-network
+
+  # PostgreSQL Database for Auth Service
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: newsfeed-postgres-auth
+    environment:
+      POSTGRES_DB: NewsFeedAuth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - newsfeed-network
+
+  # NewsFeed Auth Service (Authorization microservice)
+  newsfeed-auth-service:
+    build:
+      context: ./NewsFeedAuthService
+      dockerfile: Web/Dockerfile
+    container_name: newsfeed-auth-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=postgres-auth;Port=5432;Database=NewsFeedAuth;Username=postgres;Password=password;
+      - JwtSettings__SecretKey=your-super-secret-key-min-32-characters-long-for-security-12345
+      - JwtSettings__Issuer=NewsFeedAuthService
+      - JwtSettings__Audience=NewsFeedApi
+      - JwtSettings__ExpirationMinutes=60
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+
+  # NewsFeed API (Backend)
+  newsfeed-api:
+    build:
+      context: ./NewsFeedApi
+      dockerfile: Web/Dockerfile
+    container_name: newsfeed-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=NewsFeed;Username=postgres;Password=password;
+      - JwtSettings__SecretKey=your-super-secret-key-min-32-characters-long-for-security-12345
+      - JwtSettings__Issuer=NewsFeedAuthService
+      - JwtSettings__Audience=NewsFeedApi
+    ports:
+      - "5058:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      newsfeed-auth-service:
+        condition: service_started
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+
+  # NewsFeed UI (Frontend)
+  newsfeed-ui:
+    build:
+      context: ./NewsFeedUi
+      dockerfile: Dockerfile
+      args:
+        - NUXT_PUBLIC_API_BASE_URL=http://localhost:5058
+        - NUXT_PUBLIC_AUTH_API_BASE_URL=http://localhost:5000
+    container_name: newsfeed-ui
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      # Use service names for internal communication, localhost for external browser access
+      - NUXT_PUBLIC_API_BASE_URL=http://localhost:5058
+      - NUXT_PUBLIC_AUTH_API_BASE_URL=http://localhost:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - newsfeed-api
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+
+networks:
+  newsfeed-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  postgres_auth_data:
+
