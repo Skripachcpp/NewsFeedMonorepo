@@ -1,0 +1,9 @@
+[submodule "NewsFeedApi"]
+	path = NewsFeedApi
+	url = git@github.com:Skripachcpp/NewsFeedApi.git
+[submodule "NewsFeedAuthService"]
+	path = NewsFeedAuthService
+	url = git@github.com:Skripachcpp/NewsFeedAuthService.git
+[submodule "NewsFeedUi"]
+	path = NewsFeedUi
+	url = git@github.com:Skripachcpp/NewsFeedUi.git
