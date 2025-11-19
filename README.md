@@ -34,8 +34,15 @@ git submodule update --init --recursive
 Запустите все сервисы одной командой:
 
 ```bash
-docker-compose up -d
+docker-compose up -d --build
 ```
+
+Или только базы:
+
+```bash
+docker-compose up -d postgres postgres-auth
+```
+
 
 Эта команда:
 - Соберет Docker образы для всех сервисов
@@ -223,4 +230,5 @@ git submodule update --remote
 
 
 тестовый коммит
+
 
