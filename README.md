@@ -37,13 +37,6 @@ git submodule update --init --recursive
 docker-compose up -d --build
 ```
 
-Или только базы:
-
-```bash
-docker-compose up -d postgres postgres-auth
-```
-
-
 Эта команда:
 - Соберет Docker образы для всех сервисов
 - Запустит PostgreSQL базы данных
@@ -67,7 +60,7 @@ docker-compose ps
 
 - **Веб-интерфейс**: http://localhost:3000
 - **NewsFeed API**: http://localhost:5058
-- **Auth Service**: http://localhost:5000
+- **Auth Service**: http://localhost:5164
 - **PostgreSQL (NewsFeed)**: localhost:5432
 - **PostgreSQL (Auth)**: localhost:5433
 
