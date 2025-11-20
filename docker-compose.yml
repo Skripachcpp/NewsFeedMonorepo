@@ -46,7 +46,7 @@ services:
       dockerfile: Web/Dockerfile
     container_name: newsfeed-auth-service
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=postgres-auth;Port=5432;Database=NewsFeedAuth;Username=postgres;Password=password;
       - JwtSettings__SecretKey=your-super-secret-key-min-32-characters-long-for-security-12345
@@ -69,7 +69,7 @@ services:
       dockerfile: Web/Dockerfile
     container_name: newsfeed-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=NewsFeed;Username=postgres;Password=password;
       - JwtSettings__SecretKey=your-super-secret-key-min-32-characters-long-for-security-12345
