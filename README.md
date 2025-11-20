@@ -150,7 +150,7 @@ docker-compose restart newsfeed-ui
 
 ```bash
 # Только базы данных
-docker-compose up -d postgres postgres-auth
+docker-compose up -d postgres postgres-auth redis
 
 # Только API
 docker-compose up -d newsfeed-api
