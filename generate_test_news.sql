@@ -26,7 +26,7 @@ $$ LANGUAGE plpgsql;
 DO $$
 DECLARE
     batch_size INTEGER := 10000;
-    total_records INTEGER := 1000000;
+    total_records INTEGER := 2000000;
     current_batch INTEGER := 0;
     i INTEGER;
     start_num INTEGER;
