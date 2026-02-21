@@ -8,11 +8,6 @@
 - **NewsFeedAuthService** - Микросервис аутентификации и авторизации (ASP.NET Core)
 - **NewsFeedUi** - Веб-интерфейс на Nuxt.js
 
-## Требования
-
-- Docker Desktop (или Docker Engine + Docker Compose)
-- Git (для клонирования репозитория)
-
 ## Быстрый старт
 
 ### 1. Клонирование репозитория
@@ -36,23 +31,6 @@ git submodule update --init --recursive
 ```bash
 docker-compose up -d --build
 ```
-
-Эта команда:
-- Соберет Docker образы для всех сервисов
-- Запустит PostgreSQL базы данных
-- Запустит Auth Service
-- Запустит NewsFeed API
-- Запустит веб-интерфейс
-
-### 3. Проверка статуса
-
-Проверьте, что все контейнеры запущены:
-
-```bash
-docker-compose ps
-```
-
-Все контейнеры должны быть в статусе `Up` и `healthy` (для PostgreSQL).
 
 ### 4. Доступ к сервисам
 
