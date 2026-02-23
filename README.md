@@ -9,8 +9,8 @@ docker-compose up -d --build
 После запуска сервисы будут доступны по следующим адресам:
 
 - **Веб-интерфейс**: http://localhost:3000
-- **NewsFeed API**: http://localhost:5058
-- **Auth Service**: http://localhost:5164
+- **NewsFeed API**: http://localhost:5058/swagger
+- **Auth Service**: http://localhost:5164/swagger
 - **PostgreSQL (NewsFeed)**: localhost:5432
 - **PostgreSQL (Auth)**: localhost:5433
 
