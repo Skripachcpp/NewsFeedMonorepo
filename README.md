@@ -21,3 +21,7 @@ docker-compose up -d --build
 - `NewsFeedApi` - https://github.com/Skripachcpp/NewsFeedApi
 - `NewsFeedAuthService` - https://github.com/Skripachcpp/NewsFeedAuthService
 - `NewsFeedUi` - https://github.com/Skripachcpp/NewsFeedUi
+
+## Генерация классов api в NewsFeedUi
+
+npm run api
