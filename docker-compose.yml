@@ -1,0 +1,169 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: newsfeed-postgres
+    environment:
+      POSTGRES_DB: NewsFeed
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - newsfeed-network
+
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: newsfeed-postgres-auth
+    environment:
+      POSTGRES_DB: NewsFeedAuth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - newsfeed-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: newsfeed-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+
+  newsfeed-auth-service:
+    build:
+      context: ./NewsFeedAuthService
+      dockerfile: Web/Dockerfile
+    container_name: newsfeed-auth-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=postgres-auth;Port=5432;Database=NewsFeedAuth;Username=postgres;Password=password;
+      - JwtSettings__SecretKey=a7f3b9c2-d4e6-4a8b-9c1d-3e5f7a9b2c4d6e8f1a3b5c7d9e2f4a6b8c1d3e5f7a9b2c4d
+      - JwtSettings__Issuer=NewsFeedAuthService
+      - JwtSettings__Audience=NewsFeedApi
+      - JwtSettings__ExpirationMinutes=60
+    ports:
+      - "5164:8080"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+
+  newsfeed-api:
+    build:
+      context: ./NewsFeedApi
+      dockerfile: Web/Dockerfile
+    container_name: newsfeed-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=NewsFeed;Username=postgres;Password=password;
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=a7f3b9c2-d4e6-4a8b-9c1d-3e5f7a9b2c4d6e8f1a3b5c7d9e2f4a6b8c1d3e5f7a9b2c4d
+      - JwtSettings__Issuer=NewsFeedAuthService
+      - JwtSettings__Audience=NewsFeedApi
+    ports:
+      - "5058:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      newsfeed-auth-service:
+        condition: service_started
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health || exit 1"]
+      interval: 30s         
+      timeout: 10s          
+      retries: 3            
+      start_period: 40s     
+
+  newsfeed-ui:
+    build:
+      context: ./NewsFeedUi
+      dockerfile: Dockerfile
+    container_name: newsfeed-ui
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - NUXT_PUBLIC_API_BASE_URL=http://localhost:5058
+      - NUXT_PUBLIC_AUTH_API_BASE_URL=http://localhost:5164
+    ports:
+      - "3000:3000"
+    depends_on:
+      - newsfeed-api
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health || exit 1"]
+      interval: 30s         
+      timeout: 10s          
+      retries: 3            
+      start_period: 40s     
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: newsfeed-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    depends_on:
+      - newsfeed-api
+      - newsfeed-auth-service
+    networks:
+      - newsfeed-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  newsfeed-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  postgres_auth_data:
+  redis_data:
+  prometheus_data:
