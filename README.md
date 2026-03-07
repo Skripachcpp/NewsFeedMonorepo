@@ -14,13 +14,15 @@ docker-compose up -d --build
 - **PostgreSQL (NewsFeed)**: localhost:5432
 - **PostgreSQL (Auth)**: localhost:5433
 
-## Структура субмодулей
+## Структура репозитория
 
-Проект использует Git субмодули:
+Всё хранится в одном репозитории (монорепо), отдельные субмодули не используются. Коммиты делаются только на верхнем уровне.
 
-- `NewsFeedApi` - https://github.com/Skripachcpp/NewsFeedApi
-- `NewsFeedAuthService` - https://github.com/Skripachcpp/NewsFeedAuthService
-- `NewsFeedUi` - https://github.com/Skripachcpp/NewsFeedUi
+- `NewsFeedApi` — API новостей и тегов
+- `NewsFeedAuthService` — сервис авторизации
+- `NewsFeedUi` — веб-интерфейс (Nuxt)
+- `packages/shared` — общий код для UI
+- `NewsFeedUiHost`, `NewsFeedUiAuth`, `NewsFeedUiNews` — микрофронты (Vite + Module Federation), см. README-MFE.md
 
 ## Генерация классов api в NewsFeedUi
 
