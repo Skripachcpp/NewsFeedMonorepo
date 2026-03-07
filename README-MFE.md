@@ -1,12 +1,12 @@
-# News Feed — микрофронты (Vite + Module Federation)
+# News Feed — микрофронты (Nuxt + Vite Module Federation)
 
-Микрофронты вынесены в отдельные проекты на уровень **NewsFeedUi** (в корне монорепо).
+Микрофронты вынесены в отдельные проекты на уровень **NewsFeedUi** (в корне монорепо). Хост — приложение **NewsFeedUi** (Nuxt), подгружающее remotes в рантайме.
 
 ## Структура
 
-| Проект           | Порт | Роль   | Содержимое |
-|------------------|------|--------|------------|
-| **NewsFeedUiHost** | 5000 | Shell  | Layout, роутер, конфиг; подгружает remotes |
+| Проект        | Порт | Роль   | Содержимое |
+|---------------|------|--------|------------|
+| **NewsFeedUi**  | 5000 | Shell  | Nuxt: layout, роутер, конфиг; подгружает remotes |
 | **NewsFeedUiAuth** | 5001 | Remote | Логин, регистрация |
 | **NewsFeedUiNews** | 5002 | Remote | Новости, статья, создание/редактирование, теги |
 
@@ -20,12 +20,12 @@
    npm run build --prefix packages/shared
    ```
 
-2. Установить зависимости в каждом проекте (один раз):
+2. Установить зависимости (один раз):
 
    ```bash
    cd NewsFeedUiAuth && npm install
    cd ../NewsFeedUiNews && npm install
-   cd ../NewsFeedUiHost && npm install
+   cd ../NewsFeedUi && npm install
    ```
 
 3. Запустить все три (из каталога **NewsFeedUi**):
@@ -39,7 +39,7 @@
    ```bash
    npm run mf:dev:auth   # 5001
    npm run mf:dev:news   # 5002
-   npm run mf:dev:host   # 5000
+   npm run mf:dev:host   # 5000 — Nuxt host
    ```
 
 4. Открыть: **http://localhost:5000**
@@ -48,5 +48,5 @@
 
 1. Собрать shared: `npm run build --prefix packages/shared`
 2. Собрать remotes: в **NewsFeedUiAuth** и **NewsFeedUiNews** выполнить `npm run build`
-3. Собрать host: в **NewsFeedUiHost** выполнить `npm run build`
-4. Развернуть auth и news, подставить их URL в конфиг host (сейчас в `vite.config.ts` — localhost:5001, 5002).
+3. Собрать host: в **NewsFeedUi** выполнить `npm run build`
+4. Развернуть auth и news, подставить их URL в конфиг host: переменные окружения `NUXT_PUBLIC_AUTH_REMOTE_URL` и `NUXT_PUBLIC_NEWS_REMOTE_URL` (по умолчанию — localhost:5001, 5002).
