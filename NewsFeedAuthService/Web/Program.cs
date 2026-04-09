@@ -1,9 +1,12 @@
 using System.Data;
+using System.Text;
 using Domain;
 using Infrastructure;
 using Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +30,30 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IJwtToken, JwtToken>();
+
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? throw new ConstraintException("Отсутствует JwtSettings:SecretKey");
+var issuer = jwtSettings["Issuer"] ?? throw new ConstraintException("Отсутствует JwtSettings:Issuer");
+var audience = jwtSettings["Audience"] ?? throw new ConstraintException("Отсутствует JwtSettings:Audience");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = audience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero,
+    };
+});
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -100,6 +127,7 @@ app.UseHttpsRedirection();
 // Prometheus HTTP метрики
 app.UseHttpMetrics();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

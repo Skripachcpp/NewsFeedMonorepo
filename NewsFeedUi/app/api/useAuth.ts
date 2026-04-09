@@ -41,7 +41,7 @@ export const useAuth = () => {
 
     try {
       const info = await $fetch<AuthUserInfo>(`${authApiUrl}/auth/info`, {
-        method: "POST",
+        method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
       userInfo.value = info;

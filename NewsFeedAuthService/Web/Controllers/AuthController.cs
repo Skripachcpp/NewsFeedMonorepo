@@ -1,4 +1,8 @@
+using System.Security.Claims;
 using Domain;
+using Domain.DTOs;
+using Infrastructure.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Web.Application;
 using Web.Entity;
@@ -47,5 +51,27 @@ public class AuthController(IUserRepository userRepository, IJwtToken jwtToken):
     {
         var valid = jwtToken.Validate(token);
         return this.OkResult(valid);
+    }
+
+    [Authorize]
+    [HttpGet("info")]
+    public ActionResult<UserDto> Info(CancellationToken cancellationToken = default)
+    {
+        var idRaw = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var name = this.User.FindFirstValue(ClaimTypes.Name);
+        var email = this.User.FindFirstValue(ClaimTypes.Email);
+
+        if (idRaw is null || name is null || email is null)
+            return this.Unauthorized("токен не содержит обязательные claims");
+
+        var id = idRaw.TryPrs(0);
+        if (id <= 0) return this.Unauthorized("некорректный id пользователя в токене");
+
+        return this.OkResult(new UserDto
+        {
+            Id = id,
+            Name = name,
+            Email = email,
+        });
     }
 }
