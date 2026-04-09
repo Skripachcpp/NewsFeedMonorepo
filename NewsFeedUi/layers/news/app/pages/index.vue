@@ -12,8 +12,7 @@
         type="text"
         placeholder="Поиск по тексту новости"
       />
-      <button class="btn btn-link" @click="applySearch">Найти</button>
-      <button v-if="searchText" class="btn btn-link" @click="clearSearch">Сбросить</button>
+      <button v-if="searchText || appliedSearchText" class="btn btn-link" @click="clearSearch">Сбросить</button>
     </div>
 
     <div v-if="pending" class="pending">
@@ -72,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+import debounce from "lodash.debounce";
 import type { NewsArticleDto } from "~/api/generated";
 import { useApi } from "~/api/useApi";
 import { useAuth } from "~/api/useAuth";
@@ -126,13 +126,26 @@ let handlerLoadNews = () => {
 
 let error = computed(() => errorToString(loadError, "Ошибка при загрузке новостей"));
 
-const applySearch = async () => {
+const applySearch = (value: string) => {
   currentPage.value = 1;
-  appliedSearchText.value = searchText.value;
+  appliedSearchText.value = value;
 };
 
-const clearSearch = async () => {
+const applySearchDebounced = debounce((value: string) => {
+  applySearch(value);
+}, 400);
+
+watch(searchText, (value) => {
+  applySearchDebounced(value);
+});
+
+onBeforeUnmount(() => {
+  applySearchDebounced.cancel();
+});
+
+const clearSearch = () => {
   if (!searchText.value && !appliedSearchText.value) return;
+  applySearchDebounced.cancel();
   searchText.value = "";
   appliedSearchText.value = "";
   currentPage.value = 1;
