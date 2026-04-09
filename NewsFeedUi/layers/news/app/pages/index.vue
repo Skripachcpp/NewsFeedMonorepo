@@ -15,7 +15,7 @@
     </div>
 
     <div v-else class="news-list">
-      <div class="news-item" v-for="article in articles" :key="article.id">
+      <div class="news-item" v-for="article in articlesPage.items" :key="article.id">
         <div class="news-item-left">
           <h2 class="news-title">{{ article.title }}</h2>
 
@@ -39,6 +39,16 @@
           </div>
         </div>
       </div>
+
+      <div v-if="totalPages > 1" class="pagination">
+        <button class="btn btn-link" :disabled="currentPage === 1" @click="goToPrevPage">
+          Назад
+        </button>
+        <span class="pagination-text">Страница {{ currentPage }} из {{ totalPages }}</span>
+        <button class="btn btn-link" :disabled="currentPage === totalPages" @click="goToNextPage">
+          Вперед
+        </button>
+      </div>
     </div>
 
     <ConfirmDeleteModal
@@ -60,18 +70,40 @@ import { errorToString } from "~/utils/error";
 const api = useApi();
 
 let { isAuthenticated } = useAuth();
+const pageSize = 2;
+const currentPage = ref(1);
+const totalPages = computed(() => Math.max(1, Math.ceil(articlesPage.value.totalItems / pageSize)));
 
 const {
-  data: articles,
+  data: articlesPage,
   pending,
   error: loadError,
   refresh: loadNews,
-} = await useAsyncData<NewsArticleDto[]>(
+} = await useAsyncData<{
+  items: NewsArticleDto[];
+  totalItems: number;
+}>(
   "news-list",
   async () => {
-    return await api.getArticles();
+    const response = await api.getArticles({
+      offset: (currentPage.value - 1) * pageSize,
+      count: pageSize,
+    });
+
+    let articlesPage = {
+      items: response.items ?? [],
+      totalItems: response.total ?? 0,
+    };
+
+    return articlesPage;
   },
-  { default: () => [] },
+  {
+    default: () => ({
+      items: [],
+      totalItems: 0,
+    }),
+    watch: [currentPage],
+  },
 );
 
 let handlerLoadNews = () => {
@@ -80,7 +112,38 @@ let handlerLoadNews = () => {
 
 let error = computed(() => errorToString(loadError, "Ошибка при загрузке новостей"));
 
-let { deleteArticleId, confirmDeleteArticle } = useDeleteArticle(articles);
+const goToPrevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value -= 1;
+  }
+};
+
+const goToNextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value += 1;
+  }
+};
+
+const deleteArticleId = ref<number>();
+
+const confirmDeleteArticle = async () => {
+  if (deleteArticleId.value == null) return;
+
+  await api.deleteArticle(deleteArticleId.value);
+
+  if (articlesPage.value.totalItems > 0) {
+    articlesPage.value.totalItems -= 1;
+  }
+
+  if ((articlesPage.value.items?.length ?? 0) <= 1 && currentPage.value > 1) {
+    currentPage.value -= 1;
+    deleteArticleId.value = undefined;
+    return;
+  }
+
+  await loadNews();
+  deleteArticleId.value = undefined;
+};
 </script>
 
 <style scoped>
@@ -126,5 +189,16 @@ let { deleteArticleId, confirmDeleteArticle } = useDeleteArticle(articles);
 .news-btn-create {
   margin-right: 18px;
   width: 100px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.pagination-text {
+  color: #bbb;
 }
 </style>

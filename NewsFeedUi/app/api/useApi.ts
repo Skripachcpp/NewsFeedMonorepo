@@ -3,6 +3,7 @@ import {
   TagsService,
   OpenAPI,
   type NewsArticleDto,
+  type PageDtoOfNewsArticleDto,
   type ArticleCreateRequest,
   type ArticleUpdateRequest,
   type TagDto,
@@ -18,9 +19,10 @@ export const useApi = () => {
   const auth = useAuth();
   OpenAPI.TOKEN = async () => auth.token.value ?? "";
 
-  const getArticles = async (): Promise<NewsArticleDto[]> => {
-    // пока без пагинации
-    return (await NewsService.newsGetArticles())?.items ?? [];
+  const getArticles = async (
+    params?: { offset?: number; count?: number },
+  ): Promise<PageDtoOfNewsArticleDto> => {
+    return await NewsService.newsGetArticles(params?.offset, params?.count);
   };
 
   const getArticle = async (id: number): Promise<NewsArticleDto> => {
