@@ -2,6 +2,7 @@ import {
   NewsService,
   TagsService,
   OpenAPI,
+  CancelablePromise,
   type NewsArticleDto,
   type PageDtoOfNewsArticleDto,
   type ArticleCreateRequest,
@@ -18,11 +19,23 @@ export const useApi = () => {
 
   const auth = useAuth();
   OpenAPI.TOKEN = async () => auth.token.value ?? "";
+  let pendingGetArticlesRequest: CancelablePromise<PageDtoOfNewsArticleDto> | undefined;
 
   const getArticles = async (
     params?: { offset?: number; count?: number; searchText?: string },
   ): Promise<PageDtoOfNewsArticleDto> => {
-    return await NewsService.newsGetArticles(params?.offset, params?.count, params?.searchText);
+    pendingGetArticlesRequest?.cancel();
+
+    const request = NewsService.newsGetArticles(params?.offset, params?.count, params?.searchText);
+    pendingGetArticlesRequest = request;
+
+    try {
+      return await request;
+    } finally {
+      if (pendingGetArticlesRequest === request) {
+        pendingGetArticlesRequest = undefined;
+      }
+    }
   };
 
   const getArticle = async (id: number): Promise<NewsArticleDto> => {

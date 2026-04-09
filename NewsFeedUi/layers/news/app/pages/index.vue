@@ -12,7 +12,9 @@
         type="text"
         placeholder="Поиск по тексту новости"
       />
-      <button v-if="searchText || appliedSearchText" class="btn btn-link" @click="clearSearch">Сбросить</button>
+      <button v-if="searchText || appliedSearchText" class="btn btn-link" @click="clearSearch">
+        Сбросить
+      </button>
     </div>
 
     <div v-if="pending" class="pending">
@@ -72,7 +74,7 @@
 
 <script setup lang="ts">
 import debounce from "lodash.debounce";
-import type { NewsArticleDto } from "~/api/generated";
+import { CancelError, type NewsArticleDto } from "~/api/generated";
 import { useApi } from "~/api/useApi";
 import { useAuth } from "~/api/useAuth";
 import { dateFormat } from "~/utils/date";
@@ -85,6 +87,10 @@ const pageSize = 2;
 const currentPage = ref(1);
 const searchText = ref("");
 const appliedSearchText = ref("");
+const lastLoadedPage = ref<{ items: NewsArticleDto[]; totalItems: number }>({
+  items: [],
+  totalItems: 0,
+});
 const totalPages = computed(() => Math.max(1, Math.ceil(articlesPage.value.totalItems / pageSize)));
 
 const {
@@ -98,18 +104,28 @@ const {
 }>(
   "news-list",
   async () => {
-    const response = await api.getArticles({
-      offset: (currentPage.value - 1) * pageSize,
-      count: pageSize,
-      searchText: appliedSearchText.value || undefined,
-    });
+    let response;
+    try {
+      response = await api.getArticles({
+        offset: (currentPage.value - 1) * pageSize,
+        count: pageSize,
+        searchText: appliedSearchText.value || undefined,
+      });
+    } catch (error) {
+      if (error instanceof CancelError) {
+        return lastLoadedPage.value;
+      }
+      throw error;
+    }
 
-    let articlesPage = {
+    const nextPage = {
       items: response.items ?? [],
       totalItems: response.total ?? 0,
     };
 
-    return articlesPage;
+    lastLoadedPage.value = nextPage;
+
+    return nextPage;
   },
   {
     default: () => ({
