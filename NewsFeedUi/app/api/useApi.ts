@@ -20,9 +20,9 @@ export const useApi = () => {
   OpenAPI.TOKEN = async () => auth.token.value ?? "";
 
   const getArticles = async (
-    params?: { offset?: number; count?: number },
+    params?: { offset?: number; count?: number; searchText?: string },
   ): Promise<PageDtoOfNewsArticleDto> => {
-    return await NewsService.newsGetArticles(params?.offset, params?.count);
+    return await NewsService.newsGetArticles(params?.offset, params?.count, params?.searchText);
   };
 
   const getArticle = async (id: number): Promise<NewsArticleDto> => {

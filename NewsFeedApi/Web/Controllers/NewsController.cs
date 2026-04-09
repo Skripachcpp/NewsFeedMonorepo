@@ -27,6 +27,7 @@ public sealed class NewsController(
     public async Task<ActionResult<PageDto<NewsArticleDto>>> GetArticles(
         int offset = 0,
         int count = 100,
+        string? searchText = default,
         CancellationToken cancellationToken = default)
     {
         if (offset < 0) offset = 0;
@@ -36,8 +37,8 @@ public sealed class NewsController(
         // ну не знаю, глаза ломаются, возможно если управлять кешем вручную это будет легче читаться
         var page = await cacheRepository.AutoCacheAsync(
             CacheKeys.Articles,
-            [offset.ToStr(), count.ToStr()],
-            async () => await newsRepository.GetArticlesAsync(offset, count, cancellationToken)
+            [offset.ToStr(), count.ToStr(), searchText ?? string.Empty],
+            async () => await newsRepository.GetArticlesAsync(offset, count, searchText, cancellationToken)
                 .ConfigureAwait(false)).ConfigureAwait(false);
 
         return page;

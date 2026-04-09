@@ -9,17 +9,53 @@ namespace Infrastructure;
 public class NewsRepository(DpContext dpContext): INewsRepository
 {
     /// <inheritdoc/>
-    public async Task<PageDto<NewsArticleDto>> GetArticlesAsync(int offset = 0, int count = 100, CancellationToken cancellationToken = default)
+    public async Task<PageDto<NewsArticleDto>> GetArticlesAsync(
+        int offset = 0,
+        int count = 100,
+        string? searchText = default,
+        CancellationToken cancellationToken = default)
     {
-        using var connection = dpContext.OpenConnection();
+        var normalizedSearchText = string.IsNullOrWhiteSpace(searchText) ? null : searchText.Trim();
 
         // language=PostgreSQL
         var page = await dpContext.PageAsync<NewsArticleDto>(
-            $@"
-            SELECT * FROM get_articles_paged(@Offset, @Count);
-            SELECT get_articles_count() as cnt;
+            @"
+            SELECT
+                na.id,
+                na.title,
+                na.content,
+                na.summary,
+                na.publication_date,
+                na.user_name,
+                COALESCE(
+                    (
+                        SELECT array_agg(t.name ORDER BY t.name)::TEXT[]
+                        FROM news_article_tag nat
+                        INNER JOIN tag t ON nat.tag_id = t.id
+                        WHERE nat.news_article_id = na.id
+                    ),
+                    ARRAY[]::TEXT[]
+                ) as tags
+            FROM news_article na
+            WHERE (
+                CAST(@SearchText AS TEXT) IS NULL
+                OR na.title ILIKE '%' || CAST(@SearchText AS TEXT) || '%'
+                OR na.summary ILIKE '%' || CAST(@SearchText AS TEXT) || '%'
+                OR na.content ILIKE '%' || CAST(@SearchText AS TEXT) || '%'
+            )
+            ORDER BY na.publication_date DESC
+            LIMIT @Count OFFSET @Offset;
+
+            SELECT COUNT(*)
+            FROM news_article na
+            WHERE (
+                CAST(@SearchText AS TEXT) IS NULL
+                OR na.title ILIKE '%' || CAST(@SearchText AS TEXT) || '%'
+                OR na.summary ILIKE '%' || CAST(@SearchText AS TEXT) || '%'
+                OR na.content ILIKE '%' || CAST(@SearchText AS TEXT) || '%'
+            );
         ",
-            parameters: new { Count = count, Offset = offset },
+            parameters: new { Count = count, Offset = offset, SearchText = normalizedSearchText },
             cancellationToken: cancellationToken).ConfigureAwait(false);
         return page;
     }

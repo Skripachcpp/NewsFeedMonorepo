@@ -45,12 +45,14 @@ export class NewsService {
     /**
      * @param offset
      * @param count
+     * @param searchText
      * @returns PageDtoOfNewsArticleDto
      * @throws ApiError
      */
     public static newsGetArticles(
         offset?: number,
         count: number = 100,
+        searchText?: string,
     ): CancelablePromise<PageDtoOfNewsArticleDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -58,6 +60,7 @@ export class NewsService {
             query: {
                 'offset': offset,
                 'count': count,
+                'searchText': searchText,
             },
         });
     }

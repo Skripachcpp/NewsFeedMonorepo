@@ -5,6 +5,17 @@
       <NuxtLink to="/create" class="btn btn-blue news-btn-create">Создать</NuxtLink>
     </div>
 
+    <div class="search">
+      <input
+        v-model.trim="searchText"
+        class="search-input"
+        type="text"
+        placeholder="Поиск по тексту новости"
+      />
+      <button class="btn btn-link" @click="applySearch">Найти</button>
+      <button v-if="searchText" class="btn btn-link" @click="clearSearch">Сбросить</button>
+    </div>
+
     <div v-if="pending" class="pending">
       <p>Загрузка новостей...</p>
     </div>
@@ -72,6 +83,8 @@ const api = useApi();
 let { isAuthenticated } = useAuth();
 const pageSize = 2;
 const currentPage = ref(1);
+const searchText = ref("");
+const appliedSearchText = ref("");
 const totalPages = computed(() => Math.max(1, Math.ceil(articlesPage.value.totalItems / pageSize)));
 
 const {
@@ -88,6 +101,7 @@ const {
     const response = await api.getArticles({
       offset: (currentPage.value - 1) * pageSize,
       count: pageSize,
+      searchText: appliedSearchText.value || undefined,
     });
 
     let articlesPage = {
@@ -102,7 +116,7 @@ const {
       items: [],
       totalItems: 0,
     }),
-    watch: [currentPage],
+    watch: [currentPage, appliedSearchText],
   },
 );
 
@@ -111,6 +125,18 @@ let handlerLoadNews = () => {
 };
 
 let error = computed(() => errorToString(loadError, "Ошибка при загрузке новостей"));
+
+const applySearch = async () => {
+  currentPage.value = 1;
+  appliedSearchText.value = searchText.value;
+};
+
+const clearSearch = async () => {
+  if (!searchText.value && !appliedSearchText.value) return;
+  searchText.value = "";
+  appliedSearchText.value = "";
+  currentPage.value = 1;
+};
 
 const goToPrevPage = () => {
   if (currentPage.value > 1) {
@@ -158,6 +184,21 @@ const confirmDeleteArticle = async () => {
   position: relative;
   display: grid;
   gap: 24px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 460px;
+  border: 1px solid #666;
+  border-radius: 5px;
+  padding: 8px 12px;
 }
 
 .news-item {

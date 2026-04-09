@@ -7,6 +7,7 @@ public interface INewsRepository
     Task<PageDto<NewsArticleDto>> GetArticlesAsync(
         int offset = 0,
         int count = 10,
+        string? searchText = default,
         CancellationToken cancellationToken = default);
 
     Task<NewsArticleDto?> GetArticleAsync(int id, CancellationToken cancellationToken = default);
